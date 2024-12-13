@@ -3,7 +3,17 @@
 import pygame
 from datetime import datetime
 import math
-from gpiozero import Button
+
+has_button = False
+try:
+    from gpiozero import Button
+    has_button = True
+except ImportError as err:
+    has_button = False
+
+import urllib.request, json
+
+from config import latitude, longitude, key
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -14,6 +24,26 @@ WEATHER_SCR = 1
 CONTROL_SCR = 2
 
 selected_scr = CLOCK_SCR
+
+def query_weather ():
+    """Query weather information from visualcrossing.com"""
+    jsonData = None
+
+    try:
+        ResultBytes = urllib.request.urlopen(f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{latitude}%2C{longitude}?unitGroup=metric&include=current&key={key}&contentType=json")
+        # Parse the results as JSON
+        jsonData = json.load(ResultBytes)
+    except urllib.error.HTTPError  as e:
+        ErrorInfo= e.read().decode()
+        print('Error code: ', e.code, ErrorInfo)
+    except  urllib.error.URLError as e:
+        ErrorInfo= e.read().decode()
+        print('Error code: ', e.code,ErrorInfo)
+
+    if jsonData:
+        return jsonData ['currentConditions'], jsonData ['days']
+    else:
+        return None, None
 
 def on_clock_released ():
     """Action when clock button released"""
@@ -33,12 +63,13 @@ def on_control_released ():
     selected_scr = CONTROL_SCR
     #print ("Key 3 was clicked, switched to CONTROL screen.")
 
-clock_btn   = Button (pin = 18, pull_up = True) # GPIO18 for KEY_1
-clock_btn.when_released = on_clock_released
-weather_btn = Button (pin = 23, pull_up = True) # GPIO23 for KEY_2
-weather_btn.when_released = on_weather_released
-control_btn = Button (pin = 24, pull_up = True) # GPIO24 for KEY_3
-control_btn.when_released = on_control_released
+if has_button:
+    Clock_btn   = Button (pin = 18, pull_up = True) # GPIO18 for KEY_1
+    Clock_btn.when_released = on_clock_released
+    Weather_btn = Button (pin = 23, pull_up = True) # GPIO23 for KEY_2
+    Weather_btn.when_released = on_weather_released
+    Control_btn = Button (pin = 24, pull_up = True) # GPIO24 for KEY_3
+    Control_btn.when_released = on_control_released
 
 def circle_point(center, radius, theta):
     """Calculates the location of a point of a circle given the circle's
@@ -59,7 +90,7 @@ def get_angle(unit, total):
        o'clock and moving clock-wise."""
     return 2 * math.pi * unit / total - math.pi / 2
 
-def draw_clock_screen (screen):
+def draw_clock_screen (screen, weather = None):
     """Draw a screen with analog and digital clocks"""
 
     DIGITAL_H = 100 # height of digital clock
@@ -70,9 +101,9 @@ def draw_clock_screen (screen):
     HOUR_R = CLOCK_R / 2 # hour hand length
     MINUTE_R = CLOCK_R * 7 / 10 # minute hand length
     SECOND_R = CLOCK_R * 8 / 10 # second hand length
-    TEXT_R = CLOCK_R * 9 / 10 # distance of hour markings from center
+    TEXT_R = CLOCK_R * 8 / 10 # distance of hour markings from center
     TICK_R = 2 # stroke width of minute markings
-    TICK_LENGTH = 5 # stroke length of minute markings
+    TICK_LENGTH = CLOCK_R / 20 # stroke length of minute markings
     HOUR_STROKE = 5 # hour hand stroke width
     MINUTE_STROKE = 2 # minute hand stroke width
     SECOND_STROKE = 2 # second hand stroke width
@@ -82,6 +113,9 @@ def draw_clock_screen (screen):
     HOURS_IN_CLOCK = 12
     MINUTES_IN_HOUR = 60
     SECONDS_IN_MINUTE = 60
+
+    hour_font = pygame.font.SysFont ('Calibri', int(CLOCK_R / 7), True, False)
+    digital_font = pygame.font.SysFont ('Calibri', int(CLOCK_R / 5), False, False)
 
     # fill the screen with a color to wipe away anything from last frame
     screen.fill(BLACK)
@@ -123,14 +157,18 @@ def draw_clock_screen (screen):
     for hour in range(1, HOURS_IN_CLOCK + 1):
         theta = get_angle(hour, HOURS_IN_CLOCK)
         text = hour_font.render(str(hour), True, WHITE)
-        screen.blit(text, circle_point(center, TEXT_R, theta))
+        text_rect = text.get_rect (center = circle_point(center, TEXT_R, theta))
+
+        screen.blit(text, text_rect)
 
     # draw minute markings (lines)
     for minute in range(0, MINUTES_IN_HOUR):
         theta = get_angle(minute, MINUTES_IN_HOUR)
-        p1 = circle_point(center, CLOCK_R - TICK_LENGTH, theta)
+        length = TICK_LENGTH * 2 if minute % 5 == 0 else TICK_LENGTH
+        width  = TICK_R * 2 if minute % 5 == 0 else TICK_R
+        p1 = circle_point(center, CLOCK_R - length, theta)
         p2 = circle_point(center, CLOCK_R, theta)
-        pygame.draw.line(screen, WHITE, p1, p2, TICK_R)
+        pygame.draw.line(screen, WHITE, p1, p2, width)
 
     # draw digital clock
     digital_text = now.strftime('%H:%M:%S')
@@ -143,7 +181,7 @@ def draw_clock_screen (screen):
         ]
     )
 
-def draw_weather_screen (screen):
+def draw_weather_screen (screen, weather = None):
     """Draw a screen with weather information"""
 
     # fill the screen with a color to wipe away anything from last frame
@@ -160,10 +198,13 @@ pygame.init()
 screen = pygame.display.set_mode ((0,0), pygame.FULLSCREEN)
 pygame.display.set_caption ('Clock')
 pygame.mouse.set_visible (False)
+need_update_weather = pygame.USEREVENT + 1
+pygame.time.set_timer(need_update_weather, 3600000)  # 1h = 60m = 3600s = 3600000 milliseconds - set to query weather every 1H
 clock = pygame.time.Clock ()
-hour_font = pygame.font.SysFont ('Calibri', 25, True, False)
-digital_font = pygame.font.SysFont ('Calibri', 32, False, False)
 running = True
+
+cur_weather, fcst_weather = query_weather ()
+print (cur_weather)
 
 while running:
     # poll for events
@@ -174,12 +215,16 @@ while running:
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 running = False
+        elif event.type == need_update_weather:
+            cur_weather, tmp_fcst_weather = query_weather ()
+            fcst_weather = tmp_fcst_weather if tmp_fcst_weather is not None else fcst_weather
+            print (cur_weather)
 
     #print (f"Screen is {selected_scr}")
     if selected_scr == CLOCK_SCR:
-        draw_clock_screen (screen)
+        draw_clock_screen (screen, cur_weather)
     elif selected_scr == WEATHER_SCR:
-        draw_weather_screen (screen)
+        draw_weather_screen (screen, fcst_weather)
     elif selected_scr == CONTROL_SCR:
         draw_control_screen (screen)
 
