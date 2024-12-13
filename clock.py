@@ -3,11 +3,42 @@
 import pygame
 from datetime import datetime
 import math
+from gpiozero import Button
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
-RED = (255, 0, 0)
+RED   = (255, 0, 0)
 
+CLOCK_SCR   = 0
+WEATHER_SCR = 1
+CONTROL_SCR = 2
+
+selected_scr = CLOCK_SCR
+
+def on_clock_released ():
+    """Action when clock button released"""
+    global selected_scr
+    selected_scr = CLOCK_SCR
+    #print ("Key 1 was clicked, switched to CLOCK screen.")
+
+def on_weather_released ():
+    """Action when weather button released"""
+    global selected_scr
+    selected_scr = WEATHER_SCR
+    #print ("Key 2 was clicked, switched to WEATHER screen.")
+
+def on_control_released ():
+    """Action when control button released"""
+    global selected_scr
+    selected_scr = CONTROL_SCR
+    #print ("Key 3 was clicked, switched to CONTROL screen.")
+
+clock_btn   = Button (pin = 18, pull_up = True) # GPIO18 for KEY_1
+clock_btn.when_released = on_clock_released
+weather_btn = Button (pin = 23, pull_up = True) # GPIO23 for KEY_2
+weather_btn.when_released = on_weather_released
+control_btn = Button (pin = 24, pull_up = True) # GPIO24 for KEY_3
+control_btn.when_released = on_control_released
 
 def circle_point(center, radius, theta):
     """Calculates the location of a point of a circle given the circle's
@@ -112,13 +143,26 @@ def draw_clock_screen (screen):
         ]
     )
 
+def draw_weather_screen (screen):
+    """Draw a screen with weather information"""
+
+    # fill the screen with a color to wipe away anything from last frame
+    screen.fill(WHITE)
+
+def draw_control_screen (screen):
+    """Draw a screen with control buttons"""
+
+    # fill the screen with a color to wipe away anything from last frame
+    screen.fill(RED)
+
 # setup
 pygame.init()
-screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
-pygame.display.set_caption('Clock')
-clock = pygame.time.Clock()
-hour_font = pygame.font.SysFont('Calibri', 25, True, False)
-digital_font = pygame.font.SysFont('Calibri', 32, False, False)
+screen = pygame.display.set_mode ((0,0), pygame.FULLSCREEN)
+pygame.display.set_caption ('Clock')
+pygame.mouse.set_visible (False)
+clock = pygame.time.Clock ()
+hour_font = pygame.font.SysFont ('Calibri', 25, True, False)
+digital_font = pygame.font.SysFont ('Calibri', 32, False, False)
 running = True
 
 while running:
@@ -131,10 +175,17 @@ while running:
             if event.key == pygame.K_ESCAPE:
                 running = False
 
-    draw_clock_screen (screen)
+    #print (f"Screen is {selected_scr}")
+    if selected_scr == CLOCK_SCR:
+        draw_clock_screen (screen)
+    elif selected_scr == WEATHER_SCR:
+        draw_weather_screen (screen)
+    elif selected_scr == CONTROL_SCR:
+        draw_control_screen (screen)
+
     # flip() the display to put your work on screen
     pygame.display.flip()
 
     clock.tick(60)  # limits FPS to 60
 
-pygame.quit()
+pygame.quit ()
