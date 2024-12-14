@@ -11,9 +11,8 @@ try:
 except ImportError as err:
     has_button = False
 
-import urllib.request, json
-
 from config import latitude, longitude, key
+import helper
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -24,26 +23,6 @@ WEATHER_SCR = 1
 CONTROL_SCR = 2
 
 selected_scr = CLOCK_SCR
-
-def query_weather ():
-    """Query weather information from visualcrossing.com"""
-    jsonData = None
-
-    try:
-        ResultBytes = urllib.request.urlopen(f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{latitude}%2C{longitude}?unitGroup=metric&include=current&key={key}&contentType=json")
-        # Parse the results as JSON
-        jsonData = json.load(ResultBytes)
-    except urllib.error.HTTPError  as e:
-        ErrorInfo= e.read().decode()
-        print('Error code: ', e.code, ErrorInfo)
-    except  urllib.error.URLError as e:
-        ErrorInfo= e.read().decode()
-        print('Error code: ', e.code,ErrorInfo)
-
-    if jsonData:
-        return jsonData ['currentConditions'], jsonData ['days']
-    else:
-        return None, None
 
 def on_clock_released ():
     """Action when clock button released"""
@@ -116,6 +95,7 @@ def draw_clock_screen (screen, weather = None):
 
     hour_font = pygame.font.SysFont ('Calibri', int(CLOCK_R / 7), True, False)
     digital_font = pygame.font.SysFont ('Calibri', int(CLOCK_R / 5), False, False)
+    weather_font = pygame.font.SysFont ('Calibri', int(CLOCK_R / 10), False, False)
 
     # fill the screen with a color to wipe away anything from last frame
     screen.fill(BLACK)
@@ -159,7 +139,7 @@ def draw_clock_screen (screen, weather = None):
         text = hour_font.render(str(hour), True, WHITE)
         text_rect = text.get_rect (center = circle_point(center, TEXT_R, theta))
 
-        screen.blit(text, text_rect)
+        screen.blit (text, text_rect)
 
     # draw minute markings (lines)
     for minute in range(0, MINUTES_IN_HOUR):
@@ -173,13 +153,44 @@ def draw_clock_screen (screen, weather = None):
     # draw digital clock
     digital_text = now.strftime('%H:%M:%S')
     text = digital_font.render(digital_text, True, WHITE)
-    screen.blit(
-        text,
-        [
-            c_x - digital_font.size(digital_text)[0] / 2,
-            c_y + CLOCK_R / 2 - DIGITAL_H / 2 - digital_font.size(digital_text)[1] / 2
-        ]
-    )
+    screen.blit (text, [c_x - digital_font.size(digital_text)[0] / 2, c_y + CLOCK_R / 2 - DIGITAL_H / 2 - digital_font.size(digital_text)[1] / 2])
+
+    # draw weather information
+    if weather is not None:
+        inf1_txt  = []
+        for cond in weather['conditions'].split(', '):
+            inf1_txt.append (weather_font.render(cond, True, WHITE))
+
+        inf2a_txt  = weather_font.render(f"{weather['cloudcover']}%", True, WHITE)
+        inf2b_txt  = weather_font.render(f"{weather['windspeed']}kmh", True, WHITE)
+        inf2c_txt  = weather_font.render(f"UV: {weather['uvindex']}", True, WHITE)
+        inf2_width = max ([inf2a_txt.get_rect().width, inf2b_txt.get_rect().width, inf2c_txt.get_rect().width])
+        inf3a_txt  = weather_font.render(f"T: {weather['temp']}°C", True, WHITE)
+        inf3b_txt  = weather_font.render(f"FL: {weather['feelslike']}°C", True, WHITE)
+        inf4a_txt  = weather_font.render(f"H: {weather['humidity']}%", True, WHITE)
+        inf4b_txt  = weather_font.render(f"D: {weather['dew']}%", True, WHITE)
+        inf4_width = max ([inf4a_txt.get_rect().width, inf4b_txt.get_rect().width])
+        inf5a_txt  = weather_font.render(f"{weather['sunrise']}", True, WHITE)
+        inf5b_txt  = weather_font.render(f"{weather['sunset']}", True, WHITE)
+
+        for i in range(len(inf1_txt)):
+            screen.blit (inf1_txt [i], [2*MARGIN_W, 2*MARGIN_H + i*inf3a_txt.get_rect().height*1.2])
+
+        screen.blit (inf2a_txt, [CLOCK_W - 2*MARGIN_W - inf2_width, 2*MARGIN_H])
+        screen.blit (inf2b_txt, [CLOCK_W - 2*MARGIN_W - inf2_width, 2*MARGIN_H +   inf2a_txt.get_rect().height*1.2])
+        screen.blit (inf2c_txt, [CLOCK_W - 2*MARGIN_W - inf2_width, 2*MARGIN_H + 2*inf2a_txt.get_rect().height*1.2])
+
+        screen.blit (inf3a_txt, [2*MARGIN_W, CLOCK_H - 2*MARGIN_H - 2*inf3a_txt.get_rect().height*1.2])
+        screen.blit (inf3b_txt, [2*MARGIN_W, CLOCK_H - 2*MARGIN_H -   inf3a_txt.get_rect().height*1.2])
+
+        screen.blit (inf4a_txt, [CLOCK_W - 2*MARGIN_W - inf4_width, CLOCK_H - 2*MARGIN_H - 2*inf4a_txt.get_rect().height*1.2])
+        screen.blit (inf4b_txt, [CLOCK_W - 2*MARGIN_W - inf4_width, CLOCK_H - 2*MARGIN_H -   inf4a_txt.get_rect().height*1.2])
+
+        screen.blit (inf5a_txt, [c_x - inf5a_txt.get_rect().width / 2, c_y - CLOCK_R / 2.5 - inf5a_txt.get_rect().height*1.1])
+        screen.blit (inf5b_txt, [c_x - inf5a_txt.get_rect().width / 2, c_y - CLOCK_R / 2.5 + inf5a_txt.get_rect().height*0.1])
+    else:
+        inf5a_txt  = weather_font.render("No info", True, WHITE)
+        screen.blit (inf5a_txt, [c_x - inf5a_txt.get_rect().width / 2, c_y - CLOCK_R / 2.5 - inf5a_txt.get_rect().height*1.1])
 
 def draw_weather_screen (screen, weather = None):
     """Draw a screen with weather information"""
@@ -203,7 +214,7 @@ pygame.time.set_timer(need_update_weather, 3600000)  # 1h = 60m = 3600s = 360000
 clock = pygame.time.Clock ()
 running = True
 
-cur_weather, fcst_weather = query_weather ()
+cur_weather, fcst_weather = helper.query_weather ()
 print (cur_weather)
 
 while running:
@@ -216,9 +227,9 @@ while running:
             if event.key == pygame.K_ESCAPE:
                 running = False
         elif event.type == need_update_weather:
-            cur_weather, tmp_fcst_weather = query_weather ()
+            cur_weather, tmp_fcst_weather = helper.query_weather ()
             fcst_weather = tmp_fcst_weather if tmp_fcst_weather is not None else fcst_weather
-            print (cur_weather)
+            #print (cur_weather)
 
     #print (f"Screen is {selected_scr}")
     if selected_scr == CLOCK_SCR:
