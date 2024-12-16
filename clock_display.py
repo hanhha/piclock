@@ -109,7 +109,7 @@ def draw_clock_screen (screen, weather = None, location = None):
         pygame.draw.line(screen, WHITE, p1, p2, width)
 
     # draw digital clock
-    digital_text = now.strftime('%H:%M:%S')
+    digital_text = now.strftime('%d %b, %Y')
     text = digital_font.render(digital_text, True, WHITE)
     screen.blit (text, [c_x - digital_font.size(digital_text)[0] / 2, c_y + CLOCK_R / 2 - DIGITAL_H / 2 - digital_font.size(digital_text)[1] / 2])
     loc_txt = [weather_font.render(location['city'], True, WHITE)]
