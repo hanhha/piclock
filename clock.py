@@ -13,6 +13,7 @@ except ImportError as err:
 
 import helper
 import clock_display as scr1
+import forecast_display as scr2
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -22,8 +23,9 @@ CLOCK_SCR   = 0
 WEATHER_SCR = 1
 CONTROL_SCR = 2
 
-location = helper.get_loc_name () 
+location     = helper.get_loc_name ()
 selected_scr = CLOCK_SCR
+old_scr      = selected_scr
 
 def on_switch_released ():
     """Action when clock button released"""
@@ -111,14 +113,23 @@ while running:
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 running = False
+            elif event.key == pygame.K_2:
+                on_weather_pressed ()
+        elif event.type == pygame.KEYUP:
+            if event.key == pygame.K_1:
+                on_switch_released ()
+            elif event.key == pygame.K_2:
+                on_weather_released ()
+            if event.key == pygame.K_3:
+                on_control_released ()
         elif event.type == need_update_weather:
             cur_weather, tmp_fcst_weather = helper.query_weather ()
             fcst_weather = tmp_fcst_weather if tmp_fcst_weather is not None else fcst_weather
 
     if selected_scr == CLOCK_SCR:
-        scr1.draw_clock_screen (screen, cur_weather, location)
+        scr1.draw_screen (screen, cur_weather, location)
     elif selected_scr == WEATHER_SCR:
-        draw_weather_screen (screen, fcst_weather)
+        scr2.draw_screen (screen, fcst_weather)
     elif selected_scr == CONTROL_SCR:
         draw_control_screen (screen, events)
 

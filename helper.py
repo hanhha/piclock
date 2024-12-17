@@ -21,7 +21,7 @@ def query_weather ():
         print('Error code: ', e.code,ErrorInfo)
 
     if jsonData:
-        return jsonData ['currentConditions'], jsonData ['days']
+        return jsonData ['currentConditions'], jsonData ['days'][:7]
     else:
         return None, None
 

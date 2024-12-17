@@ -27,7 +27,7 @@ def get_angle(unit, total):
        o'clock and moving clock-wise."""
     return 2 * math.pi * unit / total - math.pi / 2
 
-def draw_clock_screen (screen, weather = None, location = None):
+def draw_screen (screen, weather = None, location = None):
     """Draw a screen with analog and digital clocks"""
 
     DIGITAL_H = 100 # height of digital clock
