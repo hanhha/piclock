@@ -22,6 +22,7 @@ RED   = (255, 0, 0)
 CLOCK_SCR   = 0
 WEATHER_SCR = 1
 CONTROL_SCR = 2
+REBOOT_SCR  = 5
 
 location     = helper.get_loc_name ()
 selected_scr = CLOCK_SCR
@@ -73,10 +74,7 @@ def on_control_released ():
         speed = speed + 1 if speed < 4 else 0
 
     if old_keytime >= 180:
-        if has_button:
-            os.system ("sudo reboot")
-        else:
-            print ("Want to reboot.")
+        selected_scr = REBOOT_SCR
 
 pihole_sts = True
 
@@ -89,12 +87,6 @@ if has_button:
     Control_btn = Button (pin = 24, pull_up = True) # GPIO24 for KEY_3
     Control_btn.when_released = on_control_released
     Control_btn.when_pressed = on_control_pressed
-
-def draw_weather_screen (screen, weather = None):
-    """Draw a screen with weather information"""
-
-    # fill the screen with a color to wipe away anything from last frame
-    screen.fill(WHITE)
 
 # setup
 pygame.init()
@@ -128,6 +120,7 @@ def draw_control_screen (screen, events):
     ui_upd.update (events = events)
 
 running = True
+reboot  = False
 
 while running:
     # poll for events
@@ -160,6 +153,10 @@ while running:
         scr2.draw_screen (screen, fcst_weather, speed)
     elif selected_scr == CONTROL_SCR:
         draw_control_screen (screen, events)
+    elif selected_scr == REBOOT_SCR:
+        helper.draw_notice (screen, "Rebooting ...")
+        running = False
+        reboot  = True
 
     # flip() the display to put your work on screen
     pygame.display.flip()
@@ -170,3 +167,9 @@ while running:
     clock.tick(60)  # limits FPS to 60
 
 pygame.quit ()
+
+if reboot:
+    if has_button:
+        os.system ("sudo reboot")
+    else:
+        print ("Want to reboot.")

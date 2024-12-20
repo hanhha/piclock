@@ -5,6 +5,10 @@ import urllib.request, json
 import reverse_geocode
 from config import latitude, longitude, visualcross_key, pihole_url, pihole_key
 
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+RED   = (255, 0, 0)
+
 def query_weather ():
     """Query weather information from visualcrossing.com"""
     jsonData = None
@@ -51,3 +55,19 @@ def lpad_str (org_str, l):
         return ' '*(l - len(org_str)) + org_str
     else:
         return org_str[-l:]
+
+def draw_notice (screen, text):
+    """Draw a screen with notice"""
+    global shift, shift_dir
+
+    SCR_W    = screen.get_width()  - 5
+    SCR_H    = screen.get_height() - 5
+    MARGIN_H = MARGIN_W = 5 # margin of analog clock from window border
+
+    # fill the screen with a color to wipe away anything from last frame
+    screen.fill(BLACK)
+
+    font   = pygame.font.SysFont ('Calibri', int((SCR_H / 7)*0.6), False, False)
+
+    txt = font.render(text, True, WHITE)
+    screen.blit (txt, [MARGIN_W, MARGIN_H])
