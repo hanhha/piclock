@@ -28,6 +28,8 @@ location     = helper.get_loc_name ()
 selected_scr = CLOCK_SCR
 old_scr      = selected_scr
 
+reboot  = False
+
 keytime_count_en = False
 keytime          = 0
 
@@ -59,12 +61,16 @@ def on_weather_released ():
 def on_control_pressed ():
     """Action when control button pressed"""
     global keytime_count_en
+    global selected_scr
 
     keytime_count_en = True
+    
+    if selected_scr == CLOCK_SCR:
+        selected_scr = REBOOT_SCR
 
 def on_control_released ():
     """Action when control button released"""
-    global selected_scr, has_button, keytime_count_en, keytime, speed
+    global selected_scr, has_button, keytime_count_en, keytime, speed, reboot
 
     keytime_count_en = False
     old_keytime      = keytime
@@ -72,9 +78,11 @@ def on_control_released ():
 
     if selected_scr == WEATHER_SCR: # change speed if in forecast screen
         speed = speed + 1 if speed < 4 else 0
-
-    if old_keytime >= 180:
-        selected_scr = REBOOT_SCR
+    elif selected_scr == REBOOT_SCR:
+        if old_keytime >= 180:
+            reboot = True
+        else:
+            selected_scr = CLOCK_SCR
 
 pihole_sts = True
 
@@ -120,7 +128,6 @@ def draw_control_screen (screen, events):
     ui_upd.update (events = events)
 
 running = True
-reboot  = False
 
 while running:
     # poll for events
@@ -147,16 +154,20 @@ while running:
             cur_weather, tmp_fcst_weather = helper.query_weather ()
             fcst_weather = tmp_fcst_weather if tmp_fcst_weather is not None else fcst_weather
 
-    if selected_scr == CLOCK_SCR:
+    if reboot:
+        running = False
+        helper.draw_notice (screen, " Rebooting ...")
+    elif selected_scr == CLOCK_SCR:
         scr1.draw_screen (screen, cur_weather, location)
     elif selected_scr == WEATHER_SCR:
         scr2.draw_screen (screen, fcst_weather, speed)
     elif selected_scr == CONTROL_SCR:
         draw_control_screen (screen, events)
     elif selected_scr == REBOOT_SCR:
-        helper.draw_notice (screen, "Rebooting ...")
-        running = False
-        reboot  = True
+        if keytime < 180:
+            helper.draw_notice (screen, " Keep pressing to reboot ...")
+        else:
+            helper.draw_notice (screen, " Release to reboot ...")
 
     # flip() the display to put your work on screen
     pygame.display.flip()
