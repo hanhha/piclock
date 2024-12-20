@@ -2,7 +2,7 @@
 
 import pygame, thorpy as tp
 from datetime import datetime
-import math
+import math, os
 
 has_button = False
 try:
@@ -52,8 +52,12 @@ def on_weather_released ():
 
 def on_control_released ():
     """Action when control button released"""
-    global selected_scr
-    print ("Key 3 was clicked.")
+    global selected_scr, has_button
+
+    if has_button:
+        os.system ("sudo reboot")
+    else:
+        print ("Key 3 was clicked.")
 
 pihole_sts = True
 
