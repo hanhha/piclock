@@ -27,6 +27,11 @@ location     = helper.get_loc_name ()
 selected_scr = CLOCK_SCR
 old_scr      = selected_scr
 
+keytime_count_en = False
+keytime          = 0
+
+speed = 0
+
 def on_switch_released ():
     """Action when clock button released"""
     global selected_scr
@@ -50,14 +55,28 @@ def on_weather_released ():
     selected_scr = old_scr 
     #print ("Key 2 was clicked, switched to old screen.")
 
+def on_control_pressed ():
+    """Action when control button pressed"""
+    global keytime_count_en
+
+    keytime_count_en = True
+
 def on_control_released ():
     """Action when control button released"""
-    global selected_scr, has_button
+    global selected_scr, has_button, keytime_count_en, keytime, speed
 
-    if has_button:
-        os.system ("sudo reboot")
-    else:
-        print ("Key 3 was clicked.")
+    keytime_count_en = False
+    old_keytime      = keytime
+    keytime          = 0
+
+    if selected_scr == WEATHER_SCR: # change speed if in forecast screen
+        speed = speed + 1 if speed < 4 else 0
+
+    if old_keytime >= 180:
+        if has_button:
+            os.system ("sudo reboot")
+        else:
+            print ("Want to reboot.")
 
 pihole_sts = True
 
@@ -69,6 +88,7 @@ if has_button:
     Weather_btn.when_pressed = on_weather_pressed
     Control_btn = Button (pin = 24, pull_up = True) # GPIO24 for KEY_3
     Control_btn.when_released = on_control_released
+    Control_btn.when_pressed = on_control_pressed
 
 def draw_weather_screen (screen, weather = None):
     """Draw a screen with weather information"""
@@ -121,12 +141,14 @@ while running:
                 running = False
             elif event.key == pygame.K_2:
                 on_weather_pressed ()
+            elif event.key == pygame.K_3:
+                on_control_pressed ()
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_1:
                 on_switch_released ()
             elif event.key == pygame.K_2:
                 on_weather_released ()
-            if event.key == pygame.K_3:
+            elif event.key == pygame.K_3:
                 on_control_released ()
         elif event.type == need_update_weather:
             cur_weather, tmp_fcst_weather = helper.query_weather ()
@@ -135,12 +157,15 @@ while running:
     if selected_scr == CLOCK_SCR:
         scr1.draw_screen (screen, cur_weather, location)
     elif selected_scr == WEATHER_SCR:
-        scr2.draw_screen (screen, fcst_weather)
+        scr2.draw_screen (screen, fcst_weather, speed)
     elif selected_scr == CONTROL_SCR:
         draw_control_screen (screen, events)
 
     # flip() the display to put your work on screen
     pygame.display.flip()
+
+    # count keytime
+    if keytime_count_en: keytime += 1
 
     clock.tick(60)  # limits FPS to 60
 
