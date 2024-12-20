@@ -39,6 +39,8 @@ def on_weather_pressed ():
     global old_scr
     old_scr = selected_scr
     selected_scr = WEATHER_SCR
+    scr2.shift = 0
+    scr2.shift_dir = False
     #print ("Key 2 was clicked, switched to WEATHER screen.")
 
 def on_weather_released ():
