@@ -3,10 +3,12 @@
 import pygame
 from datetime import datetime as date
 import math
+import helper
 
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-RED   = (255, 0, 0)
+BLACK  = (0, 0, 0)
+WHITE  = (255, 255, 255)
+RED    = (255, 0, 0)
+YELLOW = (255, 255, 0)
 
 def draw_screen (screen, fcst_weather = None):
     """Draw a screen with weather information"""
@@ -18,9 +20,28 @@ def draw_screen (screen, fcst_weather = None):
     # fill the screen with a color to wipe away anything from last frame
     screen.fill(BLACK)
 
-    weather_font = pygame.font.SysFont ('Calibri', int((SCR_H / 7)*0.8), False, False)
-    row_h        = (SCR_H - 2*MARGIN_H) / 7
+    weather_font   = pygame.font.SysFont ('Calibri', int((SCR_H / 7)*0.6), False, False)
+    row_h          = (SCR_H - 2*MARGIN_H) / 7
+    char_w, char_h = weather_font.size("a")
+
+    tbl     = [['' for c in range(5)] for r in range(7)]
+    max_len = [0 for c in range(4)]
 
     for i in range(len(fcst_weather)):
-        text = weather_font.render(date.strptime(fcst_weather[i]['datetime'], "%Y-%m-%d").date().strftime("%a") if i > 0 else "Today", True, WHITE)
-        screen.blit (text, [MARGIN_W, MARGIN_H + i*row_h])
+        tbl [i][0] = date.strptime(fcst_weather[i]['datetime'], "%Y-%m-%d").date().strftime("%a") if i > 0 else "Today"
+        tbl [i][1] = 'Fl: '    + str(fcst_weather[i]['feelslike']) + '°C'
+        tbl [i][2] = 'H: '     + str(fcst_weather[i]['humidity']) + '%'
+        tbl [i][3] = 'Cl: ' + str(fcst_weather[i]['cloudcover']) + '%'
+        tbl [i][4] = fcst_weather[i]['conditions']
+
+        if max_len [0] < len (tbl [i][0]): max_len [0] = len (tbl [i][0])
+        if max_len [1] < len (tbl [i][1]): max_len [1] = len (tbl [i][1])
+        if max_len [2] < len (tbl [i][2]): max_len [2] = len (tbl [i][2])
+        if max_len [3] < len (tbl [i][3]): max_len [3] = len (tbl [i][3])
+
+    for r in range(7):
+        for c in range(5):
+            text = weather_font.render(tbl [r][c], True, WHITE)
+            screen.blit (text, [MARGIN_W + sum(max_len[:c])*char_w, MARGIN_H + r*row_h + (row_h - char_h)/2])
+        if r > 0:
+            pygame.draw.line (screen, YELLOW, [0, MARGIN_H + r*row_h], [SCR_W, MARGIN_H + r*row_h], 2)

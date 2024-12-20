@@ -37,3 +37,17 @@ def toggle_pihole (status):
     except  urllib.error.URLError as e:
         ErrorInfo= e.read().decode()
         print('Error code: ', e.code,ErrorInfo)
+
+def rpad_str (org_str, l):
+    """Right pad with spaces"""
+    if l > len(org_str):
+        return org_str + ' '*(l - len(org_str))
+    else:
+        return org_str[:l]
+
+def lpad_str (org_str, l):
+    """Right pad with spaces"""
+    if l > len(org_str):
+        return ' '*(l - len(org_str)) + org_str
+    else:
+        return org_str[-l:]
