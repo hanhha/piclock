@@ -14,15 +14,17 @@ except ImportError as err:
 import helper
 import clock_display as scr1
 import forecast_display as scr2
+import digitalframe_display as scr3
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED   = (255, 0, 0)
 
-CLOCK_SCR   = 0
-WEATHER_SCR = 1
-CONTROL_SCR = 2
-REBOOT_SCR  = 5
+CLOCK_SCR        = 0
+WEATHER_SCR      = 1
+CONTROL_SCR      = 2
+DIGITALFRAME_SCR = 3
+REBOOT_SCR       = 5
 
 location     = helper.get_loc_name ()
 selected_scr = CLOCK_SCR
@@ -33,18 +35,32 @@ reboot  = False
 keytime_count_en = False
 keytime          = 0
 
-speed = 0
+fps         = 60
+speed       = 0     # scrolling speed
+photo_delay = 3*fps # 3 min to change photo frame
+
+photo_delay_cnt = 0
 
 def on_switch_released ():
     """Action when clock button released"""
     global selected_scr
-    selected_scr = CLOCK_SCR if selected_scr == CONTROL_SCR else CONTROL_SCR
+
+    if selected_scr == CLOCK_SCR:
+        selected_scr = DIGITALFRAME_SCR
+    elif selected_scr ==  DIGITALFRAME_SCR:
+        selected_scr = CONTROL_SCR
+    elif selected_scr == CONTROL_SCR:
+        selected_scr = CLOCK_SCR
+    else:
+        selected_scr = CLOCK_SCR
+
     #print ("Key 1 was clicked, switched to other screen.")
 
 def on_weather_pressed ():
     """Action when weather button pressed"""
     global selected_scr
     global old_scr
+
     old_scr = selected_scr
     selected_scr = WEATHER_SCR
     scr2.shift = 0
@@ -55,6 +71,7 @@ def on_weather_released ():
     """Action when weather button released"""
     global selected_scr
     global old_scr
+
     selected_scr = old_scr 
     #print ("Key 2 was clicked, switched to old screen.")
 
@@ -83,6 +100,8 @@ def on_control_released ():
             reboot = True
         else:
             selected_scr = CLOCK_SCR
+    elif selected_scr == DIGITALFRAME_SCR: # change photo
+        photo_delay_cnt = 0
 
 pihole_sts = True
 
@@ -157,17 +176,21 @@ while running:
     if reboot:
         running = False
         helper.draw_notice (screen, " Rebooting ...")
-    elif selected_scr == CLOCK_SCR:
-        scr1.draw_screen (screen, cur_weather, location)
-    elif selected_scr == WEATHER_SCR:
-        scr2.draw_screen (screen, fcst_weather, speed)
-    elif selected_scr == CONTROL_SCR:
-        draw_control_screen (screen, events)
-    elif selected_scr == REBOOT_SCR:
-        if keytime < 180:
-            helper.draw_notice (screen, " Keep pressing to reboot ...")
-        else:
-            helper.draw_notice (screen, " Release to reboot ...")
+    else:
+        if selected_scr == CLOCK_SCR:
+            scr1.draw_screen (screen, cur_weather, location)
+        elif selected_scr == WEATHER_SCR:
+            scr2.draw_screen (screen, fcst_weather, speed)
+        elif selected_scr == DIGITALFRAME_SCR:
+            scr3.draw_screen (screen, photo_delay_cnt == 0)
+            photo_delay_cnt = photo_delay if photo_delay_cnt == 0 else photo_delay_cnt - 1
+        elif selected_scr == CONTROL_SCR:
+            draw_control_screen (screen, events)
+        elif selected_scr == REBOOT_SCR:
+            if keytime < 180:
+                helper.draw_notice (screen, " Keep pressing to reboot ...")
+            else:
+                helper.draw_notice (screen, " Release to reboot ...")
 
     # flip() the display to put your work on screen
     pygame.display.flip()
@@ -175,7 +198,7 @@ while running:
     # count keytime
     if keytime_count_en: keytime += 1
 
-    clock.tick(60)  # limits FPS to 60
+    clock.tick(fps)  # limits FPS to 60
 
 pygame.quit ()
 
