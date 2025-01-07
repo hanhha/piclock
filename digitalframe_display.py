@@ -37,4 +37,4 @@ def draw_screen (screen, change = False):
         iw, ih = img.get_size ()
         r = (SCR_W / iw) if iw > ih else (SCR_H / ih)
         img = pygame.transform.scale(img, [iw * r, ih * r])
-        screen.blit (img, [MARGIN_W, MARGIN_H])
+        screen.blit (img, [MARGIN_W + (SCR_W - iw) / 2, MARGIN_H + (SCR_H - ih) / 2])

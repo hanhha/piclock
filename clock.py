@@ -36,8 +36,8 @@ keytime_count_en = False
 keytime          = 0
 
 fps         = 60
-speed       = 0     # scrolling speed
-photo_delay = 3*fps # 3 min to change photo frame
+speed       = 0       # scrolling speed
+photo_delay = 180*fps # (3 minutes) interval to change photo frame
 
 photo_delay_cnt = 0
 
@@ -87,7 +87,7 @@ def on_control_pressed ():
 
 def on_control_released ():
     """Action when control button released"""
-    global selected_scr, has_button, keytime_count_en, keytime, speed, reboot
+    global selected_scr, has_button, keytime_count_en, keytime, speed, reboot, photo_delay_cnt
 
     keytime_count_en = False
     old_keytime      = keytime
@@ -183,7 +183,7 @@ while running:
             scr2.draw_screen (screen, fcst_weather, speed)
         elif selected_scr == DIGITALFRAME_SCR:
             scr3.draw_screen (screen, photo_delay_cnt == 0)
-            photo_delay_cnt = photo_delay if photo_delay_cnt == 0 else photo_delay_cnt - 1
+            photo_delay_cnt = photo_delay if photo_delay_cnt <= 0 else photo_delay_cnt - 1
         elif selected_scr == CONTROL_SCR:
             draw_control_screen (screen, events)
         elif selected_scr == REBOOT_SCR:
