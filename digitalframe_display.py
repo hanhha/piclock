@@ -34,5 +34,7 @@ def draw_screen (screen, change = False):
     # fill the screen with a color to wipe away anything from last frame
     screen.fill(BLACK)
     if img is not None:
-        img = pygame.transform.scale(img, [SCR_W, SCR_H])
+        iw, ih = img.get_size ()
+        r = (SCR_W / iw) if iw > ih else (SCR_H / ih)
+        img = pygame.transform.scale(img, [iw * r, ih * r])
         screen.blit (img, [MARGIN_W, MARGIN_H])
