@@ -22,6 +22,20 @@ Just another RPi Clock to keep spare parts running. It can show a clock, some we
 - Show pictures in folder synced with Google Photos (https://www.thedigitalpictureframe.com/how-to-synchronize-your-digital-picture-frame-with-your-google-photos-albums-using-rclone/).
 
 ## Usage:
-- Modify config.py to update location, API key and other user informations.
+- Create config.py file in same folder with info of location, API key and other user informations, i.e:
+<blockquote>
+  latitude        = "10"
+  
+  longitude       = "10"
+  
+  visualcross_key = "7U83WAY93XSG6XCMRZD"
+  
+  pihole_url = "http://192.168.1.2"
+  
+  pihole_key ="33356c13a1389823ec782b1d1f8b4be"
+  
+  digiframe_dir = "/home/pi/Pictures/digitalframe"
+</blockquote>
+
 - Click button 1 to rotate between clock, digital frame and control screens.
 - Keep pressing button 2 to show weather forecast in 7 days.
