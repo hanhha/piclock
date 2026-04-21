@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import pygame, thorpy as tp
-from datetime import datetime
-import math, os
+from datetime import datetime, timedelta
+import math, os, threading, time
 
 has_button = False
 try:
@@ -32,14 +32,31 @@ old_scr      = selected_scr
 
 reboot  = False
 
-keytime_count_en = False
-keytime          = 0
+fps               = 60
+keytime_count_en  = False
+keytime           = 0
+boot_select_delay = 5*fps # 5 seconds
+speed             = 0       # scrolling speed
+photo_delay       = 180*fps # (3 minutes) interval to change photo frame
+photo_delay_cnt   = 0
+time_inc_cnt      = 0
 
-fps         = 60
-speed       = 0       # scrolling speed
-photo_delay = 180*fps # (3 minutes) interval to change photo frame
+queried_time = None
+time_lock    = threading.Lock()
+current_time = datetime.now ()
 
-photo_delay_cnt = 0
+def update_time():
+    """Function to run in a separate thread"""
+    global queried_time
+    while True:
+        now = datetime.now ()
+        with time_lock:
+            queried_time = now
+        time.sleep (20) # every 30s
+
+# Start the thread of querying time
+t = threading.Thread (target = update_time, daemon = True)
+t.start ()
 
 def on_switch_released ():
     """Action when clock button released"""
@@ -178,7 +195,13 @@ while running:
         helper.draw_notice (screen, " Rebooting ...")
     else:
         if selected_scr == CLOCK_SCR:
-            scr1.draw_screen (screen, cur_weather, location)
+            scr1.draw_screen (screen = screen, now = current_time, weather = cur_weather, location = location)
+            if current_time < queried_time:
+                current_time = queried_time
+            else:
+                time_inc_cnt = fps - 1 if time_inc_cnt == 0 else time_inc_cnt - 1
+                if time_inc_cnt == 0:
+                    current_time += timedelta (seconds = 1)
         elif selected_scr == WEATHER_SCR:
             scr2.draw_screen (screen, fcst_weather, speed)
         elif selected_scr == DIGITALFRAME_SCR:
@@ -187,7 +210,7 @@ while running:
         elif selected_scr == CONTROL_SCR:
             draw_control_screen (screen, events)
         elif selected_scr == REBOOT_SCR:
-            if keytime < 180:
+            if keytime < boot_select_delay:
                 helper.draw_notice (screen, " Keep pressing to reboot ...")
             else:
                 helper.draw_notice (screen, " Release to reboot ...")
