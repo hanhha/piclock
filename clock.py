@@ -41,22 +41,36 @@ photo_delay       = 180*fps # (3 minutes) interval to change photo frame
 photo_delay_cnt   = 0
 time_inc_cnt      = 0
 
-queried_time = None
-time_lock    = threading.Lock()
-current_time = datetime.now ()
+queried_time    = None
+queried_weather = None
+queried_fcst    = None
+res_lock       = threading.Lock()
+current_time    = datetime.now ()
 
 def update_time():
     """Function to run in a separate thread"""
     global queried_time
     while True:
         now = datetime.now ()
-        with time_lock:
+        with res_lock:
             queried_time = now
-        time.sleep (20) # every 30s
+        time.sleep (30) # every 30s
+
+def update_weather():
+    """Function to run in a separate thread"""
+    global queried_weather, queried_fcst
+    while True:
+        cur_weather, fcst_weather = helper.query_weather ()
+        with res_lock:
+            queried_weather = cur_weather
+            queried_fcst    = fcst_weather if fcst_weather is not None else queried_fcst
+        time.sleep (3600) # every 1H
 
 # Start the thread of querying time
-t = threading.Thread (target = update_time, daemon = True)
-t.start ()
+t1 = threading.Thread (target = update_time, daemon = True)
+t2 = threading.Thread (target = update_weather, daemon = True)
+t1.start ()
+t2.start ()
 
 def on_switch_released ():
     """Action when clock button released"""
@@ -137,8 +151,6 @@ pygame.init()
 screen = pygame.display.set_mode ((0,0), pygame.FULLSCREEN)
 pygame.display.set_caption ('Clock')
 pygame.mouse.set_visible (False)
-need_update_weather = pygame.USEREVENT + 1
-pygame.time.set_timer(need_update_weather, 3600000)  # 1h = 60m = 3600s = 3600000 milliseconds - set to query weather every 1H
 tp.set_default_font ('Calibri', 50)
 tp.init(screen, tp.theme_game1) #bind screen to gui elements and set theme
 clock = pygame.time.Clock ()
@@ -147,8 +159,6 @@ clock = pygame.time.Clock ()
 pihole_btn = tp.SwitchButtonWithText ("Pihole", ("On", "Off"), value = 0, size = (100, 50))
 ctrl_ui    = tp.Group ([pihole_btn])
 ui_upd     = ctrl_ui.get_updater ()
-
-cur_weather, fcst_weather = helper.query_weather ()
 
 def draw_control_screen (screen, events):
     """Draw a screen with control buttons"""
@@ -186,16 +196,13 @@ while running:
                 on_weather_released ()
             elif event.key == pygame.K_3:
                 on_control_released ()
-        elif event.type == need_update_weather:
-            cur_weather, tmp_fcst_weather = helper.query_weather ()
-            fcst_weather = tmp_fcst_weather if tmp_fcst_weather is not None else fcst_weather
 
     if reboot:
         running = False
         helper.draw_notice (screen, " Rebooting ...")
     else:
         if selected_scr == CLOCK_SCR:
-            scr1.draw_screen (screen = screen, now = current_time, weather = cur_weather, location = location)
+            scr1.draw_screen (screen = screen, now = current_time, weather = queried_weather, location = location)
             if current_time < queried_time:
                 current_time = queried_time
             else:
@@ -203,7 +210,7 @@ while running:
                 if time_inc_cnt == 0:
                     current_time += timedelta (seconds = 1)
         elif selected_scr == WEATHER_SCR:
-            scr2.draw_screen (screen, fcst_weather, speed)
+            scr2.draw_screen (screen, queried_fcst, speed)
         elif selected_scr == DIGITALFRAME_SCR:
             scr3.draw_screen (screen, photo_delay_cnt == 0)
             photo_delay_cnt = photo_delay if photo_delay_cnt <= 0 else photo_delay_cnt - 1
