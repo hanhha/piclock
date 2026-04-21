@@ -32,7 +32,7 @@ old_scr      = selected_scr
 
 reboot  = False
 
-fps               = 60
+fps               = 30
 keytime_count_en  = False
 keytime           = 0
 boot_select_delay = 5*fps # 5 seconds
@@ -218,7 +218,7 @@ while running:
             draw_control_screen (screen, events)
         elif selected_scr == REBOOT_SCR:
             if keytime < boot_select_delay:
-                helper.draw_notice (screen, f" Keep pressing to reboot for {(boot_select_delay - keytime)/fps} seconds ...")
+                helper.draw_notice (screen, f" Keep pressing to reboot for {(boot_select_delay - keytime)//fps} seconds ...")
             else:
                 helper.draw_notice (screen, " Release to reboot ...")
 

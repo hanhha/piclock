@@ -28,6 +28,7 @@ def draw_screen (screen, change = False):
             path = os.path.join(digiframe_dir, filename)
             try:
                 img = pygame.image.load(path)
+                img.convert ()
             except:
                 img = None
 
